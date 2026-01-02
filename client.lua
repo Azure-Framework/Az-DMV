@@ -1,3 +1,7 @@
+-- client.lua
+-- DMV client: spawns static NPCs, blips, handles interaction, written & driving tests.
+-- Requires config.lua (shared) to be loaded first.
+
 -- State
 local drivingTest = {
     inTest = false,
@@ -454,69 +458,72 @@ end)
 
 -- Draw/update loop for DMV markers, 3D text and interaction
 CreateThread(function()
-    local drawInterval = 150
     while true do
-        Wait(drawInterval)
+        local waitTime = 500  -- default: chill when far away
+
         local ped = getPlayerPed()
-        if not ped then
-            drawInterval = 150
-            goto cont
-        end
+        if ped then
+            local pos = GetEntityCoords(ped, true)
 
-        local pos = GetEntityCoords(ped, true)
-        local nearAny = false
+            for i, loc in ipairs(Config.DMVLocations) do
+                if loc.pos then
+                    local dist = #(pos - loc.pos)
 
-        for i, loc in ipairs(Config.DMVLocations) do
-            if not loc.pos then goto skiploc end
-            local dist = #(pos - loc.pos)
+                    if dist < 50.0 then
+                        -- we're near at least one DMV, so draw every frame
+                        waitTime = 0
 
-            if dist < 50.0 then
-                DrawMarker(
-                  1,
-                  loc.pos.x, loc.pos.y, loc.pos.z - 0.98,
-                  0.0, 0.0, 0.0,
-                  0.0, 0.0, 0.0,
-                  0.8, 0.8, 0.8,
-                  255, 200, 0, 255,
-                  false, false, 2, false, nil, nil, false
-                )
-                if dist < 2.5 then
-                    DrawText3D(loc.pos.x, loc.pos.y, loc.pos.z + 1.0, "[E] Talk to DMV")
-                    nearAny = true
-                    drawInterval = 0
-                    if IsControlJustReleased(0, 38) then -- E
-                        local chosen = nil
-                        if Config.UseLibInputDialog and lib and lib.inputDialog then
-                            local rows = {
-                                { type = 'select', label = 'Choose', options = {
-                                    { value = 'written', label = 'Written Test' },
-                                    { value = 'driving', label = 'Driving Test' },
-                                } }
-                            }
-                            local input = lib.inputDialog("DMV Menu", rows, { allowCancel = true })
-                            if input and input[1] then chosen = input[1] end
-                        else
-                            notify("DMV: Use /dmvwritten or /dmvdriving commands (lib.inputDialog not available).")
-                        end
+                        -- marker always drawn smoothly while inside 50.0
+                        DrawMarker(
+                            1,
+                            loc.pos.x, loc.pos.y, loc.pos.z - 0.98,
+                            0.0, 0.0, 0.0,
+                            0.0, 0.0, 0.0,
+                            0.8, 0.8, 0.8,
+                            255, 200, 0, 255,
+                            false, false, 2, false, nil, nil, false
+                        )
 
-                        if chosen == 'written' then
-                            startWrittenTest()
-                        elseif chosen == 'driving' then
-                            startDrivingTest()
+                        if dist < 2.5 then
+                            DrawText3D(loc.pos.x, loc.pos.y, loc.pos.z + 1.0, "[E] Talk to DMV")
+
+                            if IsControlJustReleased(0, 38) then -- E
+                                local chosen = nil
+                                if Config.UseLibInputDialog and lib and lib.inputDialog then
+                                    local rows = {
+                                        {
+                                            type = 'select',
+                                            label = 'Choose',
+                                            options = {
+                                                { value = 'written', label = 'Written Test' },
+                                                { value = 'driving', label = 'Driving Test' },
+                                            }
+                                        }
+                                    }
+                                    local input = lib.inputDialog("DMV Menu", rows, { allowCancel = true })
+                                    if input and input[1] then
+                                        chosen = input[1]
+                                    end
+                                else
+                                    notify("DMV: Use /dmvwritten or /dmvdriving commands (lib.inputDialog not available).")
+                                end
+
+                                if chosen == 'written' then
+                                    startWrittenTest()
+                                elseif chosen == 'driving' then
+                                    startDrivingTest()
+                                end
+                            end
                         end
                     end
                 end
             end
-            ::skiploc::
         end
 
-        if not nearAny then
-            drawInterval = 150
-        end
-
-        ::cont::
+        Wait(waitTime)
     end
 end)
+
 
 -- Start driving test (spawn vehicle, warp player, create visuals, set waypoint)
 function startDrivingTest()

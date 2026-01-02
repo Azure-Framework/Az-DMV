@@ -1,3 +1,4 @@
+-- config.lua (shared)
 Config = {}
 
 -- Test requirements
@@ -31,14 +32,8 @@ Config.UseLibInputDialog = true
 -- Each entry can include heading, ped model override, blip settings
 Config.DMVLocations = {
   {
-    pos = vector3(-544.635, -211.693, 37.650),
-    heading = 305.104,
-    pedModel = "s_m_m_autoshop_02",
-    blip = { sprite = 850, color = 5, name = "DMV" }
-  },
-  {
-    pos = vector3(230.0, -1407.0, 29.0),
-    heading = 250.0,
+    pos = vector3(240.706, -1379.409, 33.742),
+    heading = 142.789,
     pedModel = "s_m_m_autoshop_02",
     blip = { sprite = 850, color = 5, name = "DMV" }
   }
